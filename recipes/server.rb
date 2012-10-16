@@ -20,6 +20,7 @@
 ::Chef::Recipe.send(:include, Opscode::OpenSSL::Password)
 
 include_recipe "mysql::client"
+MYSQL_PASSWD = InclusiveOps.ops_secret('mysql')['server_root_password']
 
 # generate all passwords
 node.set_unless['mysql']['server_debian_password'] = secure_password
@@ -45,6 +46,7 @@ if platform?(%w{debian ubuntu})
     owner "root"
     group node['mysql']['root_group']
     mode "0600"
+    variables (:password => MYSQL_PASSWD)
     notifies :run, resources(:execute => "preseed mysql-server"), :immediately
   end
 
@@ -151,7 +153,7 @@ end
 # set the root password for situations that don't support pre-seeding.
 # (eg. platforms other than debian/ubuntu & drop-in mysql replacements)
 execute "assign-root-password" do
-  command "\"#{node['mysql']['mysqladmin_bin']}\" -u root password \"#{node['mysql']['server_root_password']}\""
+  command "\"#{node['mysql']['mysqladmin_bin']}\" -u root password \"#{MYSQL_PASSWD}\""
   action :run
   only_if "\"#{node['mysql']['mysql_bin']}\" -u root -e 'show databases;'"
 end
@@ -178,18 +180,19 @@ else
       group node['mysql']['root_group'] unless platform? 'windows'
       mode "0600"
       action :create
+      variables (:password => MYSQL_PASSWD)
     end
   end
 
   if platform? 'windows'
     windows_batch "mysql-install-privileges" do
-      command "\"#{node['mysql']['mysql_bin']}\" -u root #{node['mysql']['server_root_password'].empty? ? '' : '-p' }\"#{node['mysql']['server_root_password']}\" < \"#{grants_path}\""
+      command "\"#{node['mysql']['mysql_bin']}\" -u root #{MYSQL_PASSWD.empty? ? '' : '-p' }\"#{MYSQL_PASSWD}\" < \"#{grants_path}\""
       action :nothing
       subscribes :run, resources("template[#{grants_path}]"), :immediately
     end
   else
     execute "mysql-install-privileges" do
-      command "\"#{node['mysql']['mysql_bin']}\" -u root #{node['mysql']['server_root_password'].empty? ? '' : '-p' }\"#{node['mysql']['server_root_password']}\" < \"#{grants_path}\""
+      command "\"#{node['mysql']['mysql_bin']}\" -u root #{MYSQL_PASSWD.empty? ? '' : '-p' }\"#{MYSQL_PASSWD}\" < \"#{grants_path}\""
       action :nothing
       subscribes :run, resources("template[#{grants_path}]"), :immediately
     end
