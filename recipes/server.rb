@@ -46,7 +46,7 @@ if platform?(%w{debian ubuntu})
     owner "root"
     group node['mysql']['root_group']
     mode "0600"
-    variables (:password => MYSQL_PASSWD)
+    variables(:password => MYSQL_PASSWD)
     notifies :run, resources(:execute => "preseed mysql-server"), :immediately
   end
 
@@ -180,7 +180,7 @@ else
       group node['mysql']['root_group'] unless platform? 'windows'
       mode "0600"
       action :create
-      variables (:password => MYSQL_PASSWD)
+      variables(:password => MYSQL_PASSWD)
     end
   end
 
